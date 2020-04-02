@@ -51,10 +51,10 @@ int main(void) {
     while (1) {
     	int value = *edge_ptr;
 	if (value != 0) {
-		if (value == 0001) snake_dx = 1; // KEY0
-		else if (value == 0010) snake_dx = -1; // KEY1
-		else if (value == 0100) snake_dy = -1; // KEY2
-		else if (value == 1000) snake_dy = 1; // KEY3
+		if (value == 1) snake_dx = 1; // KEY0
+		else if (value == 2) snake_dx = -1; // KEY1
+		else if (value == 8) snake_dy = -1; // KEY2
+		else if (value == 16) snake_dy = 1; // KEY3
 		run = true;
 		break;
 	}
