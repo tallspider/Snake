@@ -1,15 +1,28 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+//type declarations*****************************************************************************
+struct snake_node{
+	int rb;
+	int cb;
+	struct snake_node *prev;
+};
+
+struct snake_list{
+	struct snake_node *head;
+	struct snake_node *tail;
+};
+
 //file globals**********************************************************************************
 volatile int pixel_buffer_start; // global variable
 
-int apple_x, apple_y, snake_dx, snake_dy, snake_x, snake_y;	//positions
-int snake_length = 1;
+struct snake_list snake;
+int apple_x, apple_y, snake_dx, snake_dy, snake_x, snake_y, snake_length;
 short int apple_colour = 0xF800; // red
 short int snake_colour = 0x03E0; // dark green
 int score = 0;
 bool legal_move = false, run = false, eat = false;
+bool game_started;
 
 //prototypes*************************************************************************************
 void clear_screen();
@@ -20,6 +33,11 @@ void wait_for_vsync();
 void draw_box(int x, int y, short int colour);
 void draw_block(int rb, int cb, short int color);
 void swap(int * one, int * two);
+
+void init_snake();
+void draw_first_snake();
+void free_snake();
+
 bool is_legal(int x, int y);
 bool has_eaten(int x0, int y0, int x1, int y1);
 
@@ -28,6 +46,7 @@ int main(void) {
     volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
     volatile int * edge_ptr = (int *)0xFF20005C; // edgecapture register
 
+	//background setup ----------------------------------------------------------------------------
     /* set front pixel buffer to start of FPGA On-chip memory */
     *(pixel_ctrl_ptr + 1) = 0xC8000000; // first store the address in the back buffer
                                         
@@ -48,30 +67,38 @@ int main(void) {
     clear_screen();
 	draw_borders(); // draw game borders
     
-    // initializing snake to be in the middle of the screen
-    snake_x = 159;
-    snake_y = 119;
-    snake_dx = 0;
-    snake_dy = 0;
+	//game setup-----------------------------------------------------------------------------------
     
+	// initializing snake to be in the middle of the screen
+    init_snake();
+	
     // initializing apple to be in the same position each time at start
     apple_x = 200;
     apple_y = 119;
     
-	//start the game
-	run = true;
+	//enter the game
+	run = true;				//will probably use a button to start
 	legal_move = true;
 	
-    while (run) {
-    	// erase prev snake
+	//have to draw first snake and apple on both canvases
+	draw_first_snake();
+	draw_box(apple_x, apple_y, apple_colour);
+	
+	wait_for_vsync();
+	pixel_buffer_start = *(pixel_ctrl_ptr + 1);
+	
+	draw_first_snake();
+	draw_box(apple_x, apple_y, apple_colour);
+	
+	while (run) {
+    	// erase prev snake tail
     	// polled IO for KEYs to determine which direction the snake moves in
     	// check key value and change dy or dx as necessary
     	// KEY0 = right, KEY1 = left, KEY2 = down, KEY3 = up
 		// insert function that changes direction snake moves in correctly
 		// increment dy or dx
-		draw_box(snake_x, snake_y, snake_colour);
-		draw_box(apple_x, apple_y, apple_colour);
-    
+		//draw_box(snake_x, snake_y, snake_colour);
+		
 		snake_x += snake_dx;
 		snake_y += snake_dy;
 		
@@ -111,10 +138,38 @@ int main(void) {
 		
 		wait_for_vsync(); // swap front and back buffers on VGA vertical sync
 		pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
-    }
-
+	}
+	free_snake();
     return 0;
 
+}
+
+void init_snake(){
+	// snake_x = 159;
+    // snake_y = 119;
+    snake_dx = 0;
+    snake_dy = 0;
+	// snake_length = 1;
+	
+	snake.head = (struct snake_node *)malloc(sizeof(struct snake_node));
+	snake.tail = snake.head;
+	snake.head -> rb = 24;
+	snake.head -> cb = 32;
+	snake.head -> prev = NULL;
+}
+
+void draw_first_snake(){
+	draw_block(snake.head -> rb, snake.head -> cb, snake_colour);
+}
+
+void free_snake(){
+	struct snake_node *at = snake.tail;
+	while(at -> prev != NULL){
+		at = at -> prev;
+		free(snake.tail);
+		snake.tail = at;
+	}
+	free(at);
 }
 
 void plot_pixel(int x, int y, short int line_color){
