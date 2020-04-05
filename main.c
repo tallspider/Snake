@@ -1,7 +1,17 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+//file globals**********************************************************************************
 volatile int pixel_buffer_start; // global variable
+
+int apple_x, apple_y, snake_dx, snake_dy, snake_x, snake_y;	//positions
+int snake_length = 1;
+short int apple_colour = 0xF800; // red
+short int snake_colour = 0x03E0; // dark green
+int score = 0;
+bool legal_move = false, run = false, eat = false;
+
+//prototypes*************************************************************************************
 void clear_screen();
 void draw_borders();
 void plot_pixel(int x, int y, short int line_color);
@@ -11,31 +21,31 @@ void draw_box(int x, int y, short int colour);
 void swap(int * one, int * two);
 bool is_legal(int x, int y);
 bool has_eaten(int x0, int y0, int x1, int y1);
-int apple_x, apple_y, snake_dx, snake_dy, snake_x, snake_y;
-int snake_length = 1;
-short int apple_colour = 0xF800; // red
-short int snake_colour = 0x03E0; // dark green
-int score = 0;
-bool legal_move = false, run = false, eat = false;
 
+//implementations**********************************************************************************
 int main(void) {
     volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
     volatile int * edge_ptr = (int *)0xFF20005C; // edgecapture register
 
     /* set front pixel buffer to start of FPGA On-chip memory */
-    *(pixel_ctrl_ptr + 1) = 0xC8000000; // first store the address in the 
-                                        // back buffer
+    *(pixel_ctrl_ptr + 1) = 0xC8000000; // first store the address in the back buffer
+                                        
     /* now, swap the front/back buffers, to set the front buffer location */
     wait_for_vsync();
+	
     /* initialize a pointer to the pixel buffer, used by drawing functions */
     pixel_buffer_start = *pixel_ctrl_ptr;
-    clear_screen(); // pixel_buffer_start points to the pixel buffer
+	
+    clear_screen(); 
+	draw_borders();
+	
     /* set back pixel buffer to start of SDRAM memory */
     *(pixel_ctrl_ptr + 1) = 0xC0000000;
+	
     pixel_buffer_start = *(pixel_ctrl_ptr + 1); // we draw on the back buffer
 
     clear_screen();
-    draw_borders(); // draw game borders
+	draw_borders(); // draw game borders
     
     // initializing snake to be in the middle of the screen
     snake_x = 159;
@@ -49,52 +59,61 @@ int main(void) {
     apple_y = 119;
     draw_box(apple_x, apple_y, apple_colour);
     
+	//start the game
+	run = true;
+	
     while (run) {
     	// erase prev snake
     	// polled IO for KEYs to determine which direction the snake moves in
     	// check key value and change dy or dx as necessary
     	// KEY0 = right, KEY1 = left, KEY2 = down, KEY3 = up
-	// insert function that changes direction snake moves in correctly
-	// increment dy or dx
-	snake_x += snake_dx;
-	snake_y += snake_dy;
-        // check if legal
-	legal_move = is_legal(apple_x, apple_y); // have to add case where snake eats itself
-	if (legal_move) {
-		legal_move = false;
-		eat = has_eaten(snake_x, snake_y, apple_x, apple_y);
-		if (eat) {
-			eat = false;
-			// re-initialization of apple in a random position if snake has 'eaten' apple
-			apple_x = (rand() % 314) + 3; // range from 3 to 316
-			apple_y = (rand() % 234) + 3; // range from 3 to 236
-			// MUST MAKE SURE APPLE POSITION IS NOT SNAKE POSITION
-			draw_box(apple_x, apple_y, apple_colour);
-			// update snake length
-			snake_length++;
-			// update score
-			score++;
-		} else continue;
-	} else {    
-		// else game over
-		// game over screen
-		wait_for_vsync();
-		run = false;
-		break;
-	}
-	wait_for_vsync(); // swap front and back buffers on VGA vertical sync
-        pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
+		// insert function that changes direction snake moves in correctly
+		// increment dy or dx
+		snake_x += snake_dx;
+		snake_y += snake_dy;
+		
+		// check if legal
+		legal_move = is_legal(apple_x, apple_y); // have to add case where snake eats itself
+		if (legal_move) {
+			
+			legal_move = false;
+			eat = has_eaten(snake_x, snake_y, apple_x, apple_y);
+			
+			if (eat) {
+				eat = false;
+				
+				// re-initialization of apple in a random position if snake has 'eaten' apple
+				apple_x = (rand() % 314) + 3; // range from 3 to 316
+				apple_y = (rand() % 234) + 3; // range from 3 to 236
+				// MUST MAKE SURE APPLE POSITION IS NOT SNAKE POSITION
+				
+				draw_box(apple_x, apple_y, apple_colour);
+				
+				// update snake length
+				snake_length++;
+				
+				// update score
+				score++;
+				
+			} else continue;
+		} else {    
+			// else game over
+			// game over screen
+			wait_for_vsync();
+			run = false;
+			break;
+		}
+		wait_for_vsync(); // swap front and back buffers on VGA vertical sync
+			pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
     }
 
     return 0;
 
 }
 
-void plot_pixel(int x, int y, short int line_color)
-{
+void plot_pixel(int x, int y, short int line_color){
     *(short int *)(pixel_buffer_start + (y << 10) + (x << 1)) = line_color;
 }
-
 
 void draw_line(int x0, int y0, int x1, int y1, short int colour) {
 	bool is_steep = (abs(y1 - y0) > abs(x1 - x0));
@@ -151,7 +170,6 @@ void wait_for_vsync() {
 	}
 }
 
-
 void swap(int * one, int * two) {
 	int temp = *one;
 	*one = *two;
@@ -160,10 +178,10 @@ void swap(int * one, int * two) {
 
 void draw_box(int x, int y, short int colour) {
 	for(int i = x - 2; i <= x + 2; i++){
-        	for(int j = y - 2; j <= y + 2; j++){
-            		plot_pixel(i, j, colour);
-        	}
-    	}
+		for(int j = y - 2; j <= y + 2; j++){
+			plot_pixel(i, j, colour);
+		}
+	}
 }
 
 void draw_borders() {
