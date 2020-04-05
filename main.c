@@ -17,11 +17,11 @@ struct snake_list{
 volatile int pixel_buffer_start; // global variable
 
 struct snake_list snake;
-int apple_x, apple_y, snake_dx, snake_dy, snake_x, snake_y, snake_length;
+int apple_rb, apple_cb, snake_dx, snake_dy, snake_x, snake_y, snake_length;
 short int apple_colour = 0xF800; // red
 short int snake_colour = 0x03E0; // dark green
 int score = 0;
-bool legal_move = false, run = false, eat = false;
+bool legal_move = false, run = false, eat = false, back_apple_drawn;
 bool game_started;
 
 //prototypes*************************************************************************************
@@ -37,6 +37,9 @@ void swap(int * one, int * two);
 void init_snake();
 void draw_first_snake();
 void free_snake();
+
+void init_apple();
+void draw_apple();
 
 bool is_legal(int x, int y);
 bool has_eaten(int x0, int y0, int x1, int y1);
@@ -73,8 +76,7 @@ int main(void) {
     init_snake();
 	
     // initializing apple to be in the same position each time at start
-    apple_x = 200;
-    apple_y = 119;
+    init_apple();
     
 	//enter the game
 	run = true;				//will probably use a button to start
@@ -82,13 +84,15 @@ int main(void) {
 	
 	//have to draw first snake and apple on both canvases
 	draw_first_snake();
-	draw_box(apple_x, apple_y, apple_colour);
+	draw_apple();
 	
 	wait_for_vsync();
 	pixel_buffer_start = *(pixel_ctrl_ptr + 1);
 	
 	draw_first_snake();
-	draw_box(apple_x, apple_y, apple_colour);
+	draw_apple();
+	
+	back_apple_drawn = true;
 	
 	while (run) {
     	// erase prev snake tail
@@ -99,29 +103,36 @@ int main(void) {
 		// increment dy or dx
 		//draw_box(snake_x, snake_y, snake_colour);
 		
-		snake_x += snake_dx;
-		snake_y += snake_dy;
+		if(!back_apple_drawn){	//new apple has not been drawn on this canvas yet
+			draw_apple();
+			back_apple_drawn = true;
+		}
+		
+		//move snake to next position
+		
+		// snake_x += snake_dx;
+		// snake_y += snake_dy;
 		
 		// check if legal
 		if (legal_move) {
 			
 			//legal_move = false;
-			eat = has_eaten(snake_x, snake_y, apple_x, apple_y);
+			//eat = has_eaten(snake_x, snake_y, apple_x, apple_y);
 			
 			if (eat) {
 				eat = false;
 				
 				// re-initialization of apple in a random position if snake has 'eaten' apple
 				do{
-					apple_x = (rand() % 314) + 3; // range from 3 to 316
-					apple_y = (rand() % 234) + 3; // range from 3 to 236
-				} while (!is_legal(apple_x, apple_y));
-				// MUST MAKE SURE APPLE POSITION IS NOT SNAKE POSITION
+					apple_cb = (rand() % 60) + 2; // range from 2 to 61
+					apple_rb = (rand() % 44) + 2; // range from 2 to 45
+				} while (!is_legal(apple_rb, apple_cb));	//as long as apple is not on snake
 				
-				draw_box(apple_x, apple_y, apple_colour);
+				draw_apple();
+				back_apple_drawn = false; //need to draw on back too
 				
 				// update snake length
-				snake_length++;
+				//snake_length++;
 				
 				// update score
 				score++;
@@ -158,8 +169,17 @@ void init_snake(){
 	snake.head -> prev = NULL;
 }
 
+void init_apple(){
+	apple_rb = 24;
+	apple_cb = 48;
+}
+
 void draw_first_snake(){
 	draw_block(snake.head -> rb, snake.head -> cb, snake_colour);
+}
+
+void draw_apple(){
+	draw_block(apple_rb, apple_cb, apple_colour);
 }
 
 void free_snake(){
@@ -283,9 +303,14 @@ void draw_borders() {
 		
 }
 
-bool is_legal(int x, int y) {
-	if (x < 1 || y < 1 || x > 318 || y > 238) return false;
-	else return true;
+bool is_legal(int apple_rb, int apple_cb) {
+	//check if the apple is on the snake
+	struct snake_node *temp = snake.tail;
+	while(temp != NULL){
+		if(temp -> rb == apple_rb && temp -> cb == apple_cb) return false;
+		temp = temp -> prev;
+	}
+	return true;
 }
 
 bool has_eaten(int x0, int y0, int x1, int y1) {
