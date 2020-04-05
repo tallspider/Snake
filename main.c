@@ -18,6 +18,7 @@ void plot_pixel(int x, int y, short int line_color);
 void draw_line(int x0, int x1, int y0, int y1, short int colour);
 void wait_for_vsync();
 void draw_box(int x, int y, short int colour);
+void draw_block(int rb, int cb, short int color);
 void swap(int * one, int * two);
 bool is_legal(int x, int y);
 bool has_eaten(int x0, int y0, int x1, int y1);
@@ -189,11 +190,42 @@ void draw_box(int x, int y, short int colour) {
 	}
 }
 
+void draw_block(int rb, int cb, short int color){
+	draw_box(cb * 5 + 2, rb * 5 + 2, color);
+}
+
 void draw_borders() {
-	draw_line(0, 0, 319, 0, 0xFFFF);
-	draw_line(0, 0, 0, 239, 0xFFFF);
-	draw_line(319, 0, 319, 239, 0xFFFF);
-	draw_line(0, 239, 319, 239, 0xFFFF);
+	// draw_line(0, 0, 319, 0, 0xFFFF);
+	// draw_line(0, 0, 0, 239, 0xFFFF);
+	// draw_line(319, 0, 319, 239, 0xFFFF);
+	// draw_line(0, 239, 319, 239, 0xFFFF);
+	
+	//2 blocks thick borders all around
+	int r, c;
+	//left 
+	for(r = 0; r < 48; r++){
+		draw_block(r, 0, snake_colour);
+		draw_block(r, 1, snake_colour);
+	}
+	
+	//right 
+	for(r = 0; r < 48; r++){
+		draw_block(r, 63, snake_colour);
+		draw_block(r, 62, snake_colour);
+	}
+	
+	//top
+	for(c = 0; c < 64; c++){
+		draw_block(0, c, snake_colour);
+		draw_block(1, c, snake_colour);
+	}
+	
+	//bottom
+	for(c = 0; c < 64; c++){
+		draw_block(47, c, snake_colour);
+		draw_block(46, c, snake_colour);
+	}
+		
 }
 
 bool is_legal(int x, int y) {
