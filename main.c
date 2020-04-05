@@ -52,15 +52,14 @@ int main(void) {
     snake_y = 119;
     snake_dx = 0;
     snake_dy = 0;
-    draw_box(snake_x, snake_y, snake_colour);
-
+    
     // initializing apple to be in the same position each time at start
     apple_x = 200;
     apple_y = 119;
-    draw_box(apple_x, apple_y, apple_colour);
     
 	//start the game
 	run = true;
+	legal_move = true;
 	
     while (run) {
     	// erase prev snake
@@ -69,22 +68,26 @@ int main(void) {
     	// KEY0 = right, KEY1 = left, KEY2 = down, KEY3 = up
 		// insert function that changes direction snake moves in correctly
 		// increment dy or dx
+		draw_box(snake_x, snake_y, snake_colour);
+		draw_box(apple_x, apple_y, apple_colour);
+    
 		snake_x += snake_dx;
 		snake_y += snake_dy;
 		
 		// check if legal
-		legal_move = is_legal(apple_x, apple_y); // have to add case where snake eats itself
 		if (legal_move) {
 			
-			legal_move = false;
+			//legal_move = false;
 			eat = has_eaten(snake_x, snake_y, apple_x, apple_y);
 			
 			if (eat) {
 				eat = false;
 				
 				// re-initialization of apple in a random position if snake has 'eaten' apple
-				apple_x = (rand() % 314) + 3; // range from 3 to 316
-				apple_y = (rand() % 234) + 3; // range from 3 to 236
+				do{
+					apple_x = (rand() % 314) + 3; // range from 3 to 316
+					apple_y = (rand() % 234) + 3; // range from 3 to 236
+				} while (!is_legal(apple_x, apple_y));
 				// MUST MAKE SURE APPLE POSITION IS NOT SNAKE POSITION
 				
 				draw_box(apple_x, apple_y, apple_colour);
@@ -95,7 +98,8 @@ int main(void) {
 				// update score
 				score++;
 				
-			} else continue;
+			}
+			
 		} else {    
 			// else game over
 			// game over screen
@@ -103,8 +107,9 @@ int main(void) {
 			run = false;
 			break;
 		}
+		
 		wait_for_vsync(); // swap front and back buffers on VGA vertical sync
-			pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
+		pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
     }
 
     return 0;
