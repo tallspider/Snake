@@ -37,6 +37,7 @@ void wait_for_vsync();
 void draw_box(int x, int y, short int colour);
 void draw_block(int rb, int cb, short int color);
 void swap(int * one, int * two);
+void delay();
 
 void check_direction_change();
 
@@ -111,7 +112,7 @@ int main(void) {
 		// insert function that changes direction snake moves in correctly
 		// increment dy or dx
 		// draw_box(snake_x, snake_y, snake_colour);
-		
+		delay();
 		// check edge capture first 
 		check_direction_change();
 		
@@ -341,26 +342,26 @@ void draw_borders() {
 	int r, c;
 	//left 
 	for(r = 0; r < 48; r++){
-		draw_block(r, 0, snake_colour);
-		draw_block(r, 1, snake_colour);
+		draw_block(r, 0, 0xFFFF);
+		draw_block(r, 1, 0xFFFF);
 	}
 	
 	//right 
 	for(r = 0; r < 48; r++){
-		draw_block(r, 63, snake_colour);
-		draw_block(r, 62, snake_colour);
+		draw_block(r, 63, 0xFFFF);
+		draw_block(r, 62, 0xFFFF);
 	}
 	
 	//top
 	for(c = 0; c < 64; c++){
-		draw_block(0, c, snake_colour);
-		draw_block(1, c, snake_colour);
+		draw_block(0, c, 0xFFFF);
+		draw_block(1, c, 0xFFFF);
 	}
 	
 	//bottom
 	for(c = 0; c < 64; c++){
-		draw_block(47, c, snake_colour);
-		draw_block(46, c, snake_colour);
+		draw_block(47, c, 0xFFFF);
+		draw_block(46, c, 0xFFFF);
 	}
 		
 }
@@ -431,6 +432,27 @@ bool will_eat_apple() {
 	int next_cb = snake.head -> cb + snake_dcb;
 	return next_rb == apple_rb && next_cb == apple_cb;
 }
+
+void delay() {
+ 	// A9 private timer address values
+ 	volatile int *timer = 0xFFFEC600;
+ 	volatile int *timer_ae = 0xFFFEC608;
+ 	volatile int *timer_f = 0xFFFEC60C;
+	
+ 	// load delay of 0.25s
+ 	*timer = 50000000;
+	
+ 	// set A & E bits
+ 	*timer_ae = 0b11;
+	
+	// keep polling until F = 0
+ 	while (*timer_f != 0x1) {
+ 		continue;
+ 	} 
+	
+	*timer_f = 0x1; // reset F bit
+}
+
 
 /*
 Init snake
